@@ -13,7 +13,7 @@ import org.deeplearning4j.rl4j.space.ObservationSpace
  * to the corresponding field. Otherwise members in this object remains uninitialized, possibly resulting
  * in an exception.
  */
-class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusState, BlokusAction, BlokusActionSpace> {
+class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusObservation, BlokusAction, BlokusActionSpace> {
     lateinit var state: BlokusState
     private var exploitingAdversary: IBlokusPlayer? = null
         set(newAdversary) {
@@ -21,15 +21,14 @@ class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusState, BlokusA
             reset()
         }
 
-    override fun reset(): BlokusState {
-        val newState = BlokusState(exploitingAdversary!!, playerColor)
-        this.state = newState
-        return newState
+    override fun reset(): BlokusObservation {
+        this.state = BlokusState(exploitingAdversary!!, playerColor)
+        return this.state.observation
     }
 
     override fun close() {}
 
-    override fun step(action: BlokusAction?): StepReply<BlokusState> {
+    override fun step(action: BlokusAction?): StepReply<BlokusObservation> {
         return this.state.step(action)
     }
 
@@ -37,12 +36,12 @@ class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusState, BlokusA
 
     override fun isDone(): Boolean = this.state.hasGameFinished()
 
-    override fun newInstance(): MDP<BlokusState, BlokusAction, BlokusActionSpace>
+    override fun newInstance(): MDP<BlokusObservation, BlokusAction, BlokusActionSpace>
             = BlokusMDP(this.playerColor)
 
-    override fun getObservationSpace(): ObservationSpace<BlokusState> = OBSERVATION_SPACE
+    override fun getObservationSpace(): ObservationSpace<BlokusObservation> = OBSERVATION_SPACE
 
     companion object {
-        val OBSERVATION_SPACE : ObservationSpace<BlokusState> = BlokusObservationSpace()
+        val OBSERVATION_SPACE : ObservationSpace<BlokusObservation> = BlokusObservationSpace()
     }
 }

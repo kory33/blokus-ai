@@ -36,8 +36,8 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer, private val pl
 
     fun hasGameFinished() : Boolean = blokusGame.isGameFinished
 
-    val information : JSONObject?
-            get() = null // TODO
+    val information : JSONObject
+            get() = JSONObject()
 
     private fun getReward() : Double {
         if (!this.hasGameFinished()) {
@@ -53,9 +53,11 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer, private val pl
         return playerPlacementSize - adversaryPlacementSize + winningBias
     }
 
-    private val reply = StepReply(this, this.getReward(), this.hasGameFinished(), this.information)
+    val observation : BlokusObservation = BlokusObservation(this)
 
-    fun step(action : BlokusAction?) : StepReply<BlokusState> {
+    private val reply = StepReply(this.observation, this.getReward(), this.hasGameFinished(), this.information)
+
+    fun step(action : BlokusAction?) : StepReply<BlokusObservation> {
         val validAction = action ?: return this.reply
 
         val placement = validAction.placement
