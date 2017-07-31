@@ -3,12 +3,8 @@ package com.github.kory33.blokus.environment
 import com.github.kory33.blokus.util.SetUtil
 import org.deeplearning4j.rl4j.space.ActionSpace
 
-class BlokusActionSpace : ActionSpace<BlokusAction> {
-    private val availableActions : Set<BlokusAction>
-
-    constructor(state: BlokusState) {
-        this.availableActions = state.getPossibleActions()
-    }
+class BlokusActionSpace(state: BlokusState) : ActionSpace<BlokusAction> {
+    private val availableActions : Set<BlokusAction> = state.getPossibleActions()
 
     override fun getSize(): Int {
         return this.availableActions.size
