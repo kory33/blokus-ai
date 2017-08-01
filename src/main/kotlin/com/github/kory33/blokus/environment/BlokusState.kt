@@ -3,6 +3,7 @@ package com.github.kory33.blokus.environment
 import com.github.kory33.blokus.game.BlokusGame
 import com.github.kory33.blokus.game.IBlokusPlayer
 import com.github.kory33.blokus.game.color.PlayerColor
+import com.github.kory33.blokus.game.data.BlokusGameData
 import org.deeplearning4j.gym.StepReply
 import org.json.JSONObject
 
@@ -36,6 +37,8 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer, private val pl
 
     fun hasGameFinished() : Boolean = blokusGame.isGameFinished
 
+    val gameData : BlokusGameData = blokusGame.gameData
+
     val information : JSONObject
             get() = JSONObject()
 
@@ -53,7 +56,7 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer, private val pl
         return playerPlacementSize - adversaryPlacementSize + winningBias
     }
 
-    val observation : BlokusObservation = BlokusObservation(this)
+    val observation : BlokusObservation = BlokusObservation(this, this.playerColor)
 
     private val reply = StepReply(this.observation, this.getReward(), this.hasGameFinished(), this.information)
 
