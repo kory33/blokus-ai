@@ -1,6 +1,8 @@
 package com.github.kory33.blokus.environment
 
 import com.github.kory33.blokus.game.BlokusGame
+import com.github.kory33.blokus.game.BlokusPlacement
+import com.github.kory33.blokus.game.ColoredBlokusPlacement
 import com.github.kory33.blokus.game.IBlokusPlayer
 import com.github.kory33.blokus.game.color.PlayerColor
 import com.github.kory33.blokus.game.data.BlokusGameData
@@ -20,10 +22,10 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer, private val pl
     /**
      * Get A(s) where s = this
      */
-    fun getPossibleActions() : Set<BlokusAction> =
-            blokusGame.possiblePlacements
-                    .map{ BlokusAction(it) }
-                    .toSet()
+    val possibleActions : Set<ColoredBlokusPlacement> = blokusGame.possiblePlacements.toSet()
+
+    fun findMatchingAction(placement : BlokusPlacement) : ColoredBlokusPlacement =
+            this.possibleActions.first { placement.cellCoordinates == it.cellCoordinates }
 
     fun letAdversaryPlay() {
         if (this.hasGameFinished()) {
@@ -60,11 +62,8 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer, private val pl
 
     private val reply = StepReply(this.observation, this.getReward(), this.hasGameFinished(), this.information)
 
-    fun step(action : BlokusAction?) : StepReply<BlokusObservation> {
-        val validAction = action ?: return this.reply
-
-        val placement = validAction.placement
-        blokusGame.makePlacement(placement)
+    fun step(action : BlokusPlacement) : StepReply<BlokusObservation> {
+        blokusGame.makePlacement(findMatchingAction(action))
 
         if (blokusGame.phase.nextPlayerColor == playerColor) {
             return this.reply
