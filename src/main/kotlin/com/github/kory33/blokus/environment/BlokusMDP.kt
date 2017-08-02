@@ -1,12 +1,9 @@
 package com.github.kory33.blokus.environment
 
-import com.github.kory33.blokus.game.BlokusPlacementSpace
 import com.github.kory33.blokus.game.IBlokusPlayer
 import com.github.kory33.blokus.game.color.PlayerColor
 import org.deeplearning4j.gym.StepReply
 import org.deeplearning4j.rl4j.mdp.MDP
-import org.deeplearning4j.rl4j.space.DiscreteSpace
-import org.deeplearning4j.rl4j.space.ObservationSpace
 
 /**
  * Blokus game represented as Markov Decision Process.
@@ -15,7 +12,7 @@ import org.deeplearning4j.rl4j.space.ObservationSpace
  * to the corresponding field. Otherwise members in this object remains uninitialized, possibly resulting
  * in an exception.
  */
-class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusObservation, Int, DiscreteSpace> {
+class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusObservation, Int, BlokusActionSpace> {
     lateinit var state: BlokusState
     private var exploitingAdversary: IBlokusPlayer? = null
         set(newAdversary) {
@@ -31,16 +28,16 @@ class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusObservation, I
     override fun close() {}
 
     override fun step(action: Int): StepReply<BlokusObservation> {
-        return this.state.step(BlokusPlacementSpace.PLACEMENT_LIST[action])
+        return this.state.step(ACTION_SPACE.getPlacementCorrespondingToIndex(action)!!)
     }
 
-    override fun getActionSpace(): DiscreteSpace = ACTION_SPACE
+    override fun getActionSpace() = ACTION_SPACE
 
-    override fun isDone(): Boolean = this.state.hasGameFinished()
+    override fun getObservationSpace() = OBSERVATION_SPACE
 
-    override fun newInstance(): MDP<BlokusObservation, Int, DiscreteSpace> = BlokusMDP(this.playerColor)
+    override fun isDone() = this.state.hasGameFinished()
 
-    override fun getObservationSpace(): ObservationSpace<BlokusObservation> = OBSERVATION_SPACE
+    override fun newInstance() = BlokusMDP(this.playerColor)
 
     companion object {
         val OBSERVATION_SPACE = BlokusObservationSpace()
