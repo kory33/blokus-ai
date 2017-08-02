@@ -24,8 +24,8 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer, private val pl
      */
     val possibleActions : Set<ColoredBlokusPlacement> = blokusGame.possiblePlacements.toSet()
 
-    fun findMatchingAction(placement : BlokusPlacement) : ColoredBlokusPlacement =
-            this.possibleActions.first { placement.cellCoordinates == it.cellCoordinates }
+    fun findMatchingAction(placement : BlokusPlacement) : ColoredBlokusPlacement? =
+            this.possibleActions.firstOrNull { placement.cellCoordinates == it.cellCoordinates }
 
     fun letAdversaryPlay() {
         if (this.hasGameFinished()) {
@@ -41,8 +41,7 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer, private val pl
 
     val gameData : BlokusGameData = blokusGame.gameData
 
-    val information : JSONObject
-            get() = JSONObject()
+    val information : JSONObject = JSONObject("{}")
 
     private fun getReward() : Double {
         if (!this.hasGameFinished()) {
@@ -63,7 +62,7 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer, private val pl
     private val reply = StepReply(this.observation, this.getReward(), this.hasGameFinished(), this.information)
 
     fun step(action : BlokusPlacement) : StepReply<BlokusObservation> {
-        blokusGame.makePlacement(findMatchingAction(action))
+        blokusGame.makePlacement(findMatchingAction(action)!!)
 
         if (blokusGame.phase.nextPlayerColor == playerColor) {
             return this.reply

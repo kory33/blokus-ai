@@ -44,6 +44,6 @@ class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusObservation, I
 
     companion object {
         val OBSERVATION_SPACE = BlokusObservationSpace()
-        val ACTION_SPACE = DiscreteSpace(BlokusPlacementSpace.PLACEMENT_LIST.size)
+        val ACTION_SPACE = BlokusActionSpace()
     }
 }
