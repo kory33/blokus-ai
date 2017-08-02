@@ -15,6 +15,7 @@ import org.deeplearning4j.rl4j.mdp.MDP
 class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusState, Int, BlokusActionSpace> {
     lateinit var state: BlokusState
     private var exploitingAdversary: IBlokusPlayer? = null
+    lateinit private var actionSpaceCache : BlokusActionSpace
 
     fun setAdversary(adversary : IBlokusPlayer) {
             exploitingAdversary = adversary
@@ -23,16 +24,19 @@ class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusState, Int, Bl
 
     override fun reset(): BlokusState {
         this.state = BlokusState(exploitingAdversary!!, playerColor)
+        this.actionSpaceCache = BlokusActionSpace(state)
         return this.state
     }
 
     override fun close() {}
 
     override fun step(action: Int): StepReply<BlokusState> {
-        return this.state.step(BlokusActionSpace.getPlacementCorrespondingToIndex(action)!!)
+        val reply = this.state.step(BlokusActionSpace.getPlacementCorrespondingToIndex(action)!!)
+        this.actionSpaceCache = BlokusActionSpace(state)
+        return reply
     }
 
-    override fun getActionSpace() = BlokusActionSpace(state)
+    override fun getActionSpace() = actionSpaceCache
 
     override fun getObservationSpace() = OBSERVATION_SPACE
 

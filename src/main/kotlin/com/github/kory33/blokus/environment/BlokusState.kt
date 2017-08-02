@@ -24,7 +24,8 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer,
     /**
      * Get A(s) where s = this
      */
-    val possibleActions : Set<ColoredBlokusPlacement> = blokusGame.possiblePlacements.toSet()
+    val possibleActions : Set<ColoredBlokusPlacement>
+        get() = blokusGame.possiblePlacements.toSet()
 
     fun findMatchingAction(placement : BlokusPlacement) : ColoredBlokusPlacement? =
             this.possibleActions.firstOrNull { placement.cellCoordinates == it.cellCoordinates }
@@ -35,13 +36,14 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer,
         }
 
         val adversaryPlacement =
-                exploitingAdversary.chooseBestPlacementFrom(blokusGame.possiblePlacements, this.blokusGame.gameData)
+                exploitingAdversary.chooseBestPlacementFrom(blokusGame.possiblePlacements, gameData)
         blokusGame.makePlacement(adversaryPlacement)
     }
 
     fun hasGameFinished() : Boolean = blokusGame.isGameFinished
 
-    val gameData : BlokusGameData = blokusGame.gameData
+    val gameData : BlokusGameData
+        get() = blokusGame.gameData
 
     val information : JSONObject = JSONObject("{}")
 
@@ -50,7 +52,7 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer,
             return 0.0
         }
 
-        val placementCounts = this.blokusGame.gameData.placementCounts.toMap()
+        val placementCounts = gameData.placementCounts.toMap()
         val playerPlacementSize = placementCounts[playerColor]!!
         val adversaryPlacementSize = placementCounts[playerColor.opponentColor]!!
 
@@ -59,15 +61,17 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer,
         return playerPlacementSize - adversaryPlacementSize + winningBias
     }
 
-    val observation : BlokusObservation = BlokusObservation(this, this.playerColor)
+    val observation : BlokusObservation
+        get() = BlokusObservation(this, this.playerColor)
 
-    private val reply = StepReply(this, this.getReward(), this.hasGameFinished(), this.information)
+    private val reply
+        get() = StepReply(this, this.getReward(), this.hasGameFinished(), this.information)
 
     fun step(action : BlokusPlacement) : StepReply<BlokusState> {
         blokusGame.makePlacement(findMatchingAction(action)!!)
 
         if (blokusGame.phase.nextPlayerColor == playerColor) {
-            return this.reply
+            return reply
         }
 
         if (blokusGame.phase.nextPlayerColor == playerColor.opponentColor) {
@@ -79,7 +83,7 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer,
             }
         }
 
-        return this.reply
+        return reply
     }
 
     override fun toArray() = this.observation.toArray()

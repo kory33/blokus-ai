@@ -80,11 +80,7 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
 
     protected fun filterQOutPut(qs: INDArray): INDArray {
         val filteringVector = getMdp().actionSpace.computeActionAvailability()
-        val res = qs.muli(filteringVector)
-        println(qs)
-        println(filteringVector)
-        println(res)
-        return res
+        return qs.muli(filteringVector)
     }
 
     /**
@@ -133,7 +129,6 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
             action = getEgPolicy().nextAction(hstack)
         }
 
-        print(action)
 
         lastAction = action!!
 
