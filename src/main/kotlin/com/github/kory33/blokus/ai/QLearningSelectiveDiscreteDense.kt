@@ -9,7 +9,7 @@ import org.deeplearning4j.rl4j.network.dqn.IDQN
 import org.deeplearning4j.rl4j.space.Encodable
 import org.deeplearning4j.rl4j.util.DataManager
 
-class QLearningSelectiveDiscreteDense<O : Encodable, AS : SelectiveDiscreteSpace<O>>
+class QLearningSelectiveDiscreteDense<O : Encodable, AS : SelectiveDiscreteSpace>
         (mdp : MDP<O, Int, AS>,
          dqn : IDQN,
          conf : QLearning.QLConfiguration,

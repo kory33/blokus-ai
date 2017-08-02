@@ -16,7 +16,7 @@ import org.deeplearning4j.rl4j.util.DataManager
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 
-abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteSpace<O>>
+abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteSpace>
         (private val mdp: MDP<O, Int, AS>,
          dqn: IDQN, conf: QLearning.QLConfiguration,
          private val dataManager: DataManager, epsilonNbStep: Int)
@@ -78,8 +78,14 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
         }
     }
 
-    protected fun filterQOutPut(obs: O, qs: INDArray)
-            = qs.muli(getMdp().actionSpace.computeActionAvailability(obs))
+    protected fun filterQOutPut(qs: INDArray): INDArray {
+        val filteringVector = getMdp().actionSpace.computeActionAvailability()
+        val res = qs.muli(filteringVector)
+        println(qs)
+        println(filteringVector)
+        println(res)
+        return res
+    }
 
     /**
      * Single step of training
@@ -121,11 +127,13 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
                 hstack = hstack.reshape(*Learning.makeShape(1, hstack.shape()))
 
             val qs = getCurrentDQN().output(hstack)
-            val maxAction = Learning.getMaxAction(filterQOutPut(obs, qs))!!
+            val maxAction = Learning.getMaxAction(filterQOutPut(qs))!!
 
             maxQ = qs.getDouble(maxAction)
             action = getEgPolicy().nextAction(hstack)
         }
+
+        print(action)
 
         lastAction = action!!
 
@@ -147,7 +155,7 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
 
             if (stepCounter > updateStart) {
                 val targets = setTarget(expReplay.batch)
-                getCurrentDQN().fit(targets.first, filterQOutPut(obs, targets.second))
+                getCurrentDQN().fit(targets.first, filterQOutPut(targets.second))
             }
 
             history = nhistory

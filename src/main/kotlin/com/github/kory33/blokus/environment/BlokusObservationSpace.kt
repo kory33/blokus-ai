@@ -19,7 +19,7 @@ class BlokusObservationSpace : ObservationSpace<BlokusState> {
         /**
          * Shape of an observation
          */
-        val SHAPE = arrayOf(12, 12, 2).toIntArray()
+        val SHAPE = arrayOf(288).toIntArray()
         val LOW = Nd4j.zeros(*SHAPE)!!
         val HIGH = Nd4j.zeros(*SHAPE).add(1)!!
     }
