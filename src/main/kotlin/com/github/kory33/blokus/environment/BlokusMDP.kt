@@ -12,7 +12,7 @@ import org.deeplearning4j.rl4j.mdp.MDP
  * to the corresponding field. Otherwise members in this object remains uninitialized, possibly resulting
  * in an exception.
  */
-class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusObservation, Int, BlokusActionSpace> {
+class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusState, Int, BlokusActionSpace> {
     lateinit var state: BlokusState
     private var exploitingAdversary: IBlokusPlayer? = null
         set(newAdversary) {
@@ -20,14 +20,14 @@ class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusObservation, I
             reset()
         }
 
-    override fun reset(): BlokusObservation {
+    override fun reset(): BlokusState {
         this.state = BlokusState(exploitingAdversary!!, playerColor)
-        return this.state.observation
+        return this.state
     }
 
     override fun close() {}
 
-    override fun step(action: Int): StepReply<BlokusObservation> {
+    override fun step(action: Int): StepReply<BlokusState> {
         return this.state.step(ACTION_SPACE.getPlacementCorrespondingToIndex(action)!!)
     }
 

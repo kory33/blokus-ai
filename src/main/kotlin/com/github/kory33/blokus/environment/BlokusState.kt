@@ -7,9 +7,11 @@ import com.github.kory33.blokus.game.IBlokusPlayer
 import com.github.kory33.blokus.game.color.PlayerColor
 import com.github.kory33.blokus.game.data.BlokusGameData
 import org.deeplearning4j.gym.StepReply
+import org.deeplearning4j.rl4j.space.Encodable
 import org.json.JSONObject
 
-class BlokusState(private val exploitingAdversary: IBlokusPlayer, private val playerColor: PlayerColor) {
+class BlokusState(private val exploitingAdversary: IBlokusPlayer,
+                  private val playerColor: PlayerColor) : Encodable{
     private val blokusGame = BlokusGame()
 
     init {
@@ -59,9 +61,9 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer, private val pl
 
     val observation : BlokusObservation = BlokusObservation(this, this.playerColor)
 
-    private val reply = StepReply(this.observation, this.getReward(), this.hasGameFinished(), this.information)
+    private val reply = StepReply(this, this.getReward(), this.hasGameFinished(), this.information)
 
-    fun step(action : BlokusPlacement) : StepReply<BlokusObservation> {
+    fun step(action : BlokusPlacement) : StepReply<BlokusState> {
         blokusGame.makePlacement(findMatchingAction(action)!!)
 
         if (blokusGame.phase.nextPlayerColor == playerColor) {
@@ -79,4 +81,6 @@ class BlokusState(private val exploitingAdversary: IBlokusPlayer, private val pl
 
         return this.reply
     }
+
+    override fun toArray() = this.observation.toArray()
 }

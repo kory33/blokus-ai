@@ -7,7 +7,7 @@ import org.nd4j.linalg.factory.Nd4j
 /**
  * Represents a space of valid observations
  */
-class BlokusObservationSpace : ObservationSpace<BlokusObservation> {
+class BlokusObservationSpace : ObservationSpace<BlokusState> {
 
     override fun getName(): String = NAME
     override fun getLow(): INDArray = LOW
