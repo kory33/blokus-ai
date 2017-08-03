@@ -6,7 +6,7 @@ import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 
 class BlokusActionSpace(state: BlokusState)
-        : SelectiveDiscreteSpace(BlokusPlacementSpace.PLACEMENT_LIST.size) {
+        : SelectiveDiscreteSpace(size) {
 
     val actionAvailabilityArray: DoubleArray
     var availableActionCache : List<Int>
@@ -54,5 +54,6 @@ class BlokusActionSpace(state: BlokusState)
         fun getPlacementCorrespondingToIndex(index : Int) : BlokusPlacement? {
             return BlokusPlacementSpace.PLACEMENT_LIST[index]
         }
+        val size = BlokusPlacementSpace.PLACEMENT_LIST.size
     }
 }

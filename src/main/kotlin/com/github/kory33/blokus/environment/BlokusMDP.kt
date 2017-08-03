@@ -45,6 +45,7 @@ class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusState, Int, Bl
     override fun newInstance() = BlokusMDP(this.playerColor)
 
     companion object {
+        val ACTION_SPACE_SIZE = BlokusActionSpace.size
         val OBSERVATION_SPACE = BlokusObservationSpace()
     }
 }
