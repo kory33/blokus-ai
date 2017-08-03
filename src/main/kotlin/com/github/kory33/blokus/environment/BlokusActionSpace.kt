@@ -9,7 +9,7 @@ class BlokusActionSpace(state: BlokusState)
         : SelectiveDiscreteSpace(BlokusPlacementSpace.PLACEMENT_LIST.size) {
 
     val actionAvailabilityArray: DoubleArray
-    var availableActions : List<Int>
+    var availableActionCache : List<Int>
     init {
         actionAvailabilityArray = kotlin.DoubleArray(BlokusPlacementSpace.PLACEMENT_LIST.size)
         val actionList = ArrayList<Int>()
@@ -22,11 +22,11 @@ class BlokusActionSpace(state: BlokusState)
                     actionAvailabilityArray[index] = 1.0
                     actionList.add(index)
                 }
-        availableActions = actionList
+        availableActionCache = actionList
     }
 
     override fun computeActionAvailability(): INDArray = Nd4j.create(actionAvailabilityArray)
-    override fun randomAction(): Int = availableActions[rd.nextInt(availableActions.size)]
+    override fun getAvailableActions(): List<Int> = availableActionCache
 
     companion object {
         fun getPlacementCorrespondingToIndex(index : Int) : BlokusPlacement? {

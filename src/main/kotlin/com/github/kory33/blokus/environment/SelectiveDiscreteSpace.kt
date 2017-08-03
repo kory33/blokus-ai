@@ -9,4 +9,14 @@ abstract class SelectiveDiscreteSpace (size: Int) : DiscreteSpace(size) {
      * index of the element is valid, 0 if not.
      */
     abstract fun computeActionAvailability() : INDArray
+
+    /**
+     * Computes a list containing all the valid actions
+     */
+    abstract fun getAvailableActions() : List<Int>
+
+    override fun randomAction(): Int {
+        val availableActions = getAvailableActions()
+        return availableActions[rd.nextInt(availableActions.size)]
+    }
 }
