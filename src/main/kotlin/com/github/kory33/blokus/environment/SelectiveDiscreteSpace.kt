@@ -19,4 +19,10 @@ abstract class SelectiveDiscreteSpace (size: Int) : DiscreteSpace(size) {
         val availableActions = getAvailableActions()
         return availableActions[rd.nextInt(availableActions.size)]
     }
+
+    abstract fun maxQValue(qVector : INDArray) : Double
+
+    abstract fun maxQValueAction(qVector : INDArray) : Int
+
+    abstract fun filterQValues(qVector: INDArray) : INDArray
 }

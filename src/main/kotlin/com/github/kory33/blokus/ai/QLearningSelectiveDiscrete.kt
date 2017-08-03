@@ -77,11 +77,6 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
         }
     }
 
-    protected fun filterQOutPut(qs: INDArray): INDArray {
-        val filteringVector = getMdp().actionSpace.computeActionAvailability()
-        return qs.muliRowVector(filteringVector)
-    }
-
     /**
      * Single step of training
      * @param obs last obs
@@ -121,8 +116,8 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
             if (hstack.shape().size > 2)
                 hstack = hstack.reshape(*Learning.makeShape(1, hstack.shape()))
 
-            val qs = filterQOutPut(getCurrentDQN().output(hstack))
-            val maxAction = Nd4j.argMax(qs, 1).getInt(0)
+            val qs = getCurrentDQN().output(hstack)
+            val maxAction = mdp.actionSpace.maxQValueAction(qs)
 
             maxQ = qs.getDouble(maxAction)
             action = getEgPolicy().nextAction(hstack)
@@ -148,7 +143,7 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
 
             if (stepCounter > updateStart) {
                 val targets = setTarget(expReplay.batch)
-                getCurrentDQN().fit(targets.first, filterQOutPut(targets.second))
+                getCurrentDQN().fit(targets.first, targets.second)
             }
 
             history = nhistory
@@ -182,16 +177,16 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
             nextObs.putRow(i, Transition.concat(Transition.append(trans.observation, trans.nextObservation)))
         }
 
-        val dqnOutputAr = filterQOutPut(dqnOutput(obs))
+        val dqnOutputAr = dqnOutput(obs)
 
-        val dqnOutputNext = filterQOutPut(dqnOutput(nextObs))
+        val dqnOutputNext = dqnOutput(nextObs)
         var targetDqnOutputNext: INDArray? = null
 
         var tempQ: INDArray? = null
         var getMaxAction: INDArray? = null
         if (getConfiguration().isDoubleDQN) {
-            targetDqnOutputNext = filterQOutPut(targetDqnOutput(nextObs))
-            getMaxAction = Nd4j.argMax(dqnOutputNext, 1)
+            targetDqnOutputNext = targetDqnOutput(nextObs)
+            getMaxAction = Nd4j.argMax(targetDqnOutputNext, 1)
         } else {
             tempQ = Nd4j.max(dqnOutputNext, 1)
         }

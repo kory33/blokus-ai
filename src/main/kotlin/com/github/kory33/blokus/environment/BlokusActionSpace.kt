@@ -28,6 +28,28 @@ class BlokusActionSpace(state: BlokusState)
     override fun computeActionAvailability(): INDArray = Nd4j.create(actionAvailabilityArray)
     override fun getAvailableActions(): List<Int> = availableActionCache
 
+    override fun maxQValue(qVector: INDArray): Double {
+        return qVector.getDouble(maxQValueAction(qVector))
+    }
+
+    override fun maxQValueAction(qVector: INDArray): Int {
+        var maxQValue : Double? = null
+        var maxQValueIndex : Int? = null
+        getAvailableActions().forEach { index ->
+            val q = qVector.getDouble(index)
+            if (maxQValue == null || q > maxQValue!!) {
+                maxQValue = q
+                maxQValueIndex = index
+            }
+        }
+
+        return maxQValueIndex!!
+    }
+
+    override fun filterQValues(qVector: INDArray): INDArray {
+        return qVector.muliRowVector(computeActionAvailability())
+    }
+
     companion object {
         fun getPlacementCorrespondingToIndex(index : Int) : BlokusPlacement? {
             return BlokusPlacementSpace.PLACEMENT_LIST[index]
