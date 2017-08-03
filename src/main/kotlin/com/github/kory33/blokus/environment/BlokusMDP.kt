@@ -1,6 +1,6 @@
 package com.github.kory33.blokus.environment
 
-import com.github.kory33.blokus.game.IBlokusPlayer
+import com.github.kory33.blokus.ai.ExploitingMLN
 import com.github.kory33.blokus.game.color.PlayerColor
 import org.deeplearning4j.gym.StepReply
 import org.deeplearning4j.rl4j.mdp.MDP
@@ -12,37 +12,37 @@ import org.deeplearning4j.rl4j.mdp.MDP
  * to the corresponding field. Otherwise members in this object remains uninitialized, possibly resulting
  * in an exception.
  */
-class BlokusMDP(private val playerColor: PlayerColor) : MDP<BlokusState, Int, BlokusActionSpace> {
-    lateinit var state: BlokusState
-    private var exploitingAdversary: IBlokusPlayer? = null
-    lateinit private var actionSpaceCache : BlokusActionSpace
+class BlokusMDP(private val playerColor: PlayerColor, private var exploitingMLN: ExploitingMLN<BlokusActionSpace>)
+        : MDP<BlokusState, Int, BlokusActionSpace> {
+    var state = BlokusState(exploitingMLN, playerColor)
 
-    fun setAdversary(adversary : IBlokusPlayer) {
-            exploitingAdversary = adversary
-            reset()
-        }
+    var actionSpaceCache : BlokusActionSpace? = null
 
     override fun reset(): BlokusState {
-        this.state = BlokusState(exploitingAdversary!!, playerColor)
-        this.actionSpaceCache = BlokusActionSpace(state)
+        this.actionSpaceCache = null
+        this.state = BlokusState(exploitingMLN, playerColor)
         return this.state
     }
 
     override fun close() {}
 
     override fun step(action: Int): StepReply<BlokusState> {
-        val reply = this.state.step(BlokusActionSpace.getPlacementCorrespondingToIndex(action)!!)
-        this.actionSpaceCache = BlokusActionSpace(state)
-        return reply
+        this.actionSpaceCache = null
+        return this.state.step(BlokusActionSpace.getPlacementCorrespondingToIndex(action)!!)
     }
 
-    override fun getActionSpace() = actionSpaceCache
+    override fun getActionSpace() : BlokusActionSpace {
+        if (actionSpaceCache == null) {
+            actionSpaceCache = state.getActionSpace()
+        }
+        return actionSpaceCache!!
+    }
 
     override fun getObservationSpace() = OBSERVATION_SPACE
 
     override fun isDone() = this.state.hasGameFinished()
 
-    override fun newInstance() = BlokusMDP(this.playerColor)
+    override fun newInstance() = BlokusMDP(this.playerColor, this.exploitingMLN)
 
     companion object {
         val ACTION_SPACE_SIZE = BlokusActionSpace.size

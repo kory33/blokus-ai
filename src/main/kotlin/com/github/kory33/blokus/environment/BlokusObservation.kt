@@ -13,8 +13,9 @@ import org.deeplearning4j.rl4j.space.Encodable
 class BlokusObservation(state: BlokusState, private val playerColor: PlayerColor) : Encodable {
     private val board : BlokusBoard = state.gameData.board
     private var arrayRepresentation : DoubleArray? = null
+    private var swappedArrayRepresentation : DoubleArray? = null
 
-    private fun getArrayListOfColor(validColor : CellColor) : ArrayList<Double> {
+    private fun getArrayListOfColor(validColor : CellColor) : DoubleArray {
         val resultList = ArrayList<Double>()
 
         val size = BlokusConstant.BOARD_SIZE
@@ -26,7 +27,24 @@ class BlokusObservation(state: BlokusState, private val playerColor: PlayerColor
             })
         })
 
-        return resultList
+        return resultList.toDoubleArray()
+    }
+
+    private fun updateCache() {
+        val playerColorBoardArray = getArrayListOfColor(CellColor.fromPlayerColor(this.playerColor))
+        val adversaryColorBoardArray = getArrayListOfColor(CellColor.fromPlayerColor(this.playerColor.opponentColor))
+
+        this.arrayRepresentation = playerColorBoardArray + adversaryColorBoardArray
+        this.swappedArrayRepresentation = adversaryColorBoardArray + playerColorBoardArray
+    }
+
+    fun toSwappedArray() : DoubleArray {
+        if (this.swappedArrayRepresentation != null) {
+            return this.swappedArrayRepresentation!!
+        }
+
+        updateCache()
+        return this.swappedArrayRepresentation!!
     }
 
     /**
@@ -41,11 +59,7 @@ class BlokusObservation(state: BlokusState, private val playerColor: PlayerColor
             return this.arrayRepresentation!!
         }
 
-        val resultArray = ArrayList<Double>()
-        resultArray.addAll(getArrayListOfColor(CellColor.fromPlayerColor(this.playerColor)))
-        resultArray.addAll(getArrayListOfColor(CellColor.fromPlayerColor(this.playerColor.opponentColor)))
-
-        this.arrayRepresentation = resultArray.toDoubleArray()
+        updateCache()
         return this.arrayRepresentation!!
     }
 }

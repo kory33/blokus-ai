@@ -2,19 +2,19 @@ package com.github.kory33.blokus.environment
 
 import com.github.kory33.blokus.game.BlokusPlacement
 import com.github.kory33.blokus.game.BlokusPlacementSpace
+import com.github.kory33.blokus.game.ColoredBlokusPlacement
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 
-class BlokusActionSpace(state: BlokusState)
+class BlokusActionSpace(possibleActions: Set<ColoredBlokusPlacement>)
         : SelectiveDiscreteSpace(size) {
 
-    val actionAvailabilityArray: DoubleArray
+    val actionAvailabilityArray: DoubleArray = DoubleArray(BlokusPlacementSpace.PLACEMENT_LIST.size)
     var availableActionCache : List<Int>
     init {
-        actionAvailabilityArray = kotlin.DoubleArray(BlokusPlacementSpace.PLACEMENT_LIST.size)
         val actionList = ArrayList<Int>()
 
-        state.possibleActions
+        possibleActions
                 .map { placement ->
                     BlokusPlacementSpace.PLACEMENT_INDEX_MAP.getKey(placement)!!
                 }
