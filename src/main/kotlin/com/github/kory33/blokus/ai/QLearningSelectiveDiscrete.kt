@@ -7,7 +7,6 @@ import org.deeplearning4j.rl4j.learning.sync.Transition
 import org.deeplearning4j.rl4j.learning.sync.qlearning.QLearning
 import org.deeplearning4j.rl4j.mdp.MDP
 import org.deeplearning4j.rl4j.network.dqn.IDQN
-import org.deeplearning4j.rl4j.policy.DQNPolicy
 import org.deeplearning4j.rl4j.policy.EpsGreedy
 import org.deeplearning4j.rl4j.policy.Policy
 import org.deeplearning4j.rl4j.space.Encodable
@@ -32,7 +31,7 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
     private var currentDQN: IDQN = dqn
     override fun getCurrentDQN(): IDQN = currentDQN
 
-    private var policy: DQNPolicy<O>
+    private var policy: SelectiveDQNPolicy<O, AS>
     override fun getPolicy(): Policy<O, Int> = policy
 
     private var egPolicy: EpsGreedy<O, Int, AS>
@@ -52,7 +51,7 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
 
     init {
         targetDQN = dqn.clone()
-        policy = DQNPolicy(dqn)
+        policy = SelectiveDQNPolicy(mdp, dqn)
         egPolicy = EpsGreedy(policy, mdp, conf.updateStart, epsilonNbStep, random, conf.minEpsilon, this)
         lastAction = 0
         history = null
@@ -80,7 +79,7 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
 
     protected fun filterQOutPut(qs: INDArray): INDArray {
         val filteringVector = getMdp().actionSpace.computeActionAvailability()
-        return qs.muli(filteringVector)
+        return qs.muliRowVector(filteringVector)
     }
 
     /**
@@ -122,13 +121,12 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
             if (hstack.shape().size > 2)
                 hstack = hstack.reshape(*Learning.makeShape(1, hstack.shape()))
 
-            val qs = getCurrentDQN().output(hstack)
-            val maxAction = Learning.getMaxAction(filterQOutPut(qs))!!
+            val qs = filterQOutPut(getCurrentDQN().output(hstack))
+            val maxAction = Nd4j.argMax(qs, 1).getInt(0)
 
             maxQ = qs.getDouble(maxAction)
             action = getEgPolicy().nextAction(hstack)
         }
-
 
         lastAction = action!!
 
@@ -184,15 +182,15 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
             nextObs.putRow(i, Transition.concat(Transition.append(trans.observation, trans.nextObservation)))
         }
 
-        val dqnOutputAr = dqnOutput(obs)
+        val dqnOutputAr = filterQOutPut(dqnOutput(obs))
 
-        val dqnOutputNext = dqnOutput(nextObs)
+        val dqnOutputNext = filterQOutPut(dqnOutput(nextObs))
         var targetDqnOutputNext: INDArray? = null
 
         var tempQ: INDArray? = null
         var getMaxAction: INDArray? = null
         if (getConfiguration().isDoubleDQN) {
-            targetDqnOutputNext = targetDqnOutput(nextObs)
+            targetDqnOutputNext = filterQOutPut(targetDqnOutput(nextObs))
             getMaxAction = Nd4j.argMax(dqnOutputNext, 1)
         } else {
             tempQ = Nd4j.max(dqnOutputNext, 1)
