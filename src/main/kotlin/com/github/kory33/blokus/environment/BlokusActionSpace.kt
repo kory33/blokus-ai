@@ -5,23 +5,23 @@ import com.github.kory33.blokus.game.BlokusPlacementSpace
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 
-class BlokusActionSpace(private val state: BlokusState)
+class BlokusActionSpace(state: BlokusState)
         : SelectiveDiscreteSpace(BlokusPlacementSpace.PLACEMENT_LIST.size) {
 
     val actionAvailabilityArray: DoubleArray
     var availableActions : List<Int>
     init {
-        actionAvailabilityArray = BlokusPlacementSpace.PLACEMENT_LIST
-                .map { placement ->
-                    state.possibleActions.firstOrNull { placement.cellCoordinates == it.cellCoordinates } != null
-                }
-                .map { isValidAction -> if (isValidAction) 1.0 else 0.0 }
-                .toDoubleArray()
-
+        actionAvailabilityArray = kotlin.DoubleArray(BlokusPlacementSpace.PLACEMENT_LIST.size)
         val actionList = ArrayList<Int>()
-        (0 .. actionAvailabilityArray.size - 1).forEach {
-            if (actionAvailabilityArray[it] != 0.0) actionList.add(it)
-        }
+
+        state.possibleActions
+                .map { placement ->
+                    BlokusPlacementSpace.PLACEMENT_INDEX_MAP.getKey(placement)!!
+                }
+                .forEach {index ->
+                    actionAvailabilityArray[index] = 1.0
+                    actionList.add(index)
+                }
         availableActions = actionList
     }
 
