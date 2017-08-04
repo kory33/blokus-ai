@@ -14,6 +14,7 @@ import org.nd4j.linalg.factory.Nd4j
 class BlokusState(private val exploitingMLN : ExploitingMLN<BlokusActionSpace>,
                   private val playerColor: PlayerColor) : Encodable{
     private val blokusGame = BlokusGame()
+    private var rewardReservoir = 0
 
     fun getActionSpace() : BlokusActionSpace = BlokusActionSpace(blokusGame.possiblePlacements)
 
@@ -40,7 +41,10 @@ class BlokusState(private val exploitingMLN : ExploitingMLN<BlokusActionSpace>,
         val observation = Nd4j.create(this.observation.toReversedArray())
         val adversaryOutput = exploitingMLN.getNextAction(observation, getActionSpace())
         val adversaryAction = BlokusActionSpace.getPlacementCorrespondingToIndex(adversaryOutput)!!
-        blokusGame.makePlacement(findMatchingAction(adversaryAction)!!)
+        val gameAction = findMatchingAction(adversaryAction)!!
+
+        rewardReservoir -= gameAction.size()
+        blokusGame.makePlacement(gameAction)
     }
 
     fun hasGameFinished() : Boolean = blokusGame.isGameFinished
@@ -51,17 +55,15 @@ class BlokusState(private val exploitingMLN : ExploitingMLN<BlokusActionSpace>,
     val information : JSONObject = JSONObject("{}")
 
     private fun getReward() : Double {
-        if (!this.hasGameFinished()) {
-            return 0.0
+        val winningBias = when (this.blokusGame.winnerColor) {
+            playerColor -> 10.0
+            playerColor.opponentColor -> -10.0
+            else -> 0.0
         }
 
-        val placementCounts = gameData.placementCounts.toMap()
-        val playerPlacementSize = placementCounts[playerColor]!!
-        val adversaryPlacementSize = placementCounts[playerColor.opponentColor]!!
-
-        val winningBias = if (this.blokusGame.winnerColor!! == playerColor) 10.0 else - 10.0
-
-        return playerPlacementSize - adversaryPlacementSize + winningBias
+        val reward = rewardReservoir + winningBias
+        rewardReservoir = 0
+        return reward
     }
 
     val observation : BlokusObservation
@@ -71,7 +73,10 @@ class BlokusState(private val exploitingMLN : ExploitingMLN<BlokusActionSpace>,
         get() = StepReply(this, this.getReward(), this.hasGameFinished(), this.information)
 
     fun step(action : BlokusPlacement) : StepReply<BlokusState> {
-        blokusGame.makePlacement(findMatchingAction(action)!!)
+        val gameAction = findMatchingAction(action)!!
+
+        rewardReservoir += gameAction.size()
+        blokusGame.makePlacement(gameAction)
 
         if (blokusGame.phase.nextPlayerColor == playerColor) {
             return reply
