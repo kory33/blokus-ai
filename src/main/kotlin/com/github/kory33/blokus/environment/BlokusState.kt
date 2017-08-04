@@ -37,7 +37,7 @@ class BlokusState(private val exploitingMLN : ExploitingMLN<BlokusActionSpace>,
             return
         }
 
-        val observation = Nd4j.create(this.observation.toSwappedArray())
+        val observation = Nd4j.create(this.observation.toReversedArray())
         val adversaryOutput = exploitingMLN.getNextAction(observation, getActionSpace())
         val adversaryAction = BlokusActionSpace.getPlacementCorrespondingToIndex(adversaryOutput)!!
         blokusGame.makePlacement(findMatchingAction(adversaryAction)!!)

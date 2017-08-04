@@ -13,7 +13,7 @@ import org.deeplearning4j.rl4j.space.Encodable
 class BlokusObservation(state: BlokusState, private val playerColor: PlayerColor) : Encodable {
     private val board : BlokusBoard = state.gameData.board
     private var arrayRepresentation : DoubleArray? = null
-    private var swappedArrayRepresentation : DoubleArray? = null
+    private var reversedArrayRepresentation: DoubleArray? = null
 
     private fun getArrayListOfColor(validColor : CellColor) : DoubleArray {
         val resultList = ArrayList<Double>()
@@ -35,16 +35,16 @@ class BlokusObservation(state: BlokusState, private val playerColor: PlayerColor
         val adversaryColorBoardArray = getArrayListOfColor(CellColor.fromPlayerColor(this.playerColor.opponentColor))
 
         this.arrayRepresentation = playerColorBoardArray + adversaryColorBoardArray
-        this.swappedArrayRepresentation = adversaryColorBoardArray + playerColorBoardArray
+        this.reversedArrayRepresentation = arrayRepresentation!!.reversedArray()
     }
 
-    fun toSwappedArray() : DoubleArray {
-        if (this.swappedArrayRepresentation != null) {
-            return this.swappedArrayRepresentation!!
+    fun toReversedArray() : DoubleArray {
+        if (this.reversedArrayRepresentation != null) {
+            return this.reversedArrayRepresentation!!
         }
 
         updateCache()
-        return this.swappedArrayRepresentation!!
+        return this.reversedArrayRepresentation!!
     }
 
     /**
