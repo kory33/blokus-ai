@@ -15,10 +15,11 @@ import org.deeplearning4j.rl4j.mdp.MDP
 class BlokusMDP(private val playerColor: PlayerColor, private var exploitingMLN: ExploitingMLN<BlokusActionSpace>)
         : MDP<BlokusState, Int, BlokusActionSpace> {
     var state = BlokusState(exploitingMLN, playerColor)
-
+    var actionOnReset : ((BlokusState) -> Unit)? = null
     var actionSpaceCache : BlokusActionSpace? = null
 
     override fun reset(): BlokusState {
+        this.actionOnReset?.invoke(state)
         this.actionSpaceCache = null
         this.state = BlokusState(exploitingMLN, playerColor)
         return this.state
