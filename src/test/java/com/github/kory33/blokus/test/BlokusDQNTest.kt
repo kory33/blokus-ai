@@ -11,12 +11,13 @@ import org.deeplearning4j.rl4j.util.DataManager
 import org.deeplearning4j.ui.api.UIServer
 import org.deeplearning4j.ui.stats.StatsListener
 import org.deeplearning4j.ui.storage.InMemoryStatsStorage
+import org.deeplearning4j.ui.weights.ConvolutionalIterationListener
 
 
 val blokusQLConfig = QLearning.QLConfiguration(
         123456789, //Random seed
-        10000, //Max step By epoch
-        25000, //Max step
+        8000, //Max step By epoch
+        500000, //Max step
         15000, //Max size of experience replay
         64, //size of batches
         100, //target update (hard)
@@ -44,7 +45,7 @@ fun blokusDQN() {
 
     uiServer.attach(statsStorage)
     network.listeners.add(StatsListener(statsStorage))
-
+    network.listeners.add(ConvolutionalIterationListener(100))
     mdp.actionOnReset = { blokusState ->
         println(blokusState.gameData.placementCounts.winningColor!!.toString() + " has won.")
         print(BoardUtil.visualizeBoard(blokusState.gameData.board))
