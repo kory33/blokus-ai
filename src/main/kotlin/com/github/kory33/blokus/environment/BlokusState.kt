@@ -1,6 +1,7 @@
 package com.github.kory33.blokus.environment
 
 import com.github.kory33.blokus.ai.ExploitingMLN
+import com.github.kory33.blokus.environment.space.BlokusActionSpace
 import com.github.kory33.blokus.game.BlokusGame
 import com.github.kory33.blokus.game.BlokusPlacement
 import com.github.kory33.blokus.game.ColoredBlokusPlacement

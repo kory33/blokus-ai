@@ -1,6 +1,8 @@
 package com.github.kory33.blokus.environment
 
 import com.github.kory33.blokus.ai.ExploitingMLN
+import com.github.kory33.blokus.environment.space.BlokusActionSpace
+import com.github.kory33.blokus.environment.space.BlokusObservationSpace
 import com.github.kory33.blokus.game.color.PlayerColor
 import org.deeplearning4j.gym.StepReply
 import org.deeplearning4j.rl4j.mdp.MDP

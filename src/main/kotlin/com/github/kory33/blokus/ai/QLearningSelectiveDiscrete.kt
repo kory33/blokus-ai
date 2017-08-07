@@ -1,6 +1,6 @@
 package com.github.kory33.blokus.ai
 
-import com.github.kory33.blokus.environment.SelectiveDiscreteSpace
+import com.github.kory33.blokus.environment.space.SelectiveDiscreteSpace
 import org.deeplearning4j.berkeley.Pair
 import org.deeplearning4j.rl4j.learning.Learning
 import org.deeplearning4j.rl4j.learning.sync.Transition

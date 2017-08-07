@@ -1,4 +1,4 @@
-package com.github.kory33.blokus.environment
+package com.github.kory33.blokus.environment.space
 
 import com.github.kory33.blokus.game.BlokusPlacement
 import com.github.kory33.blokus.game.BlokusPlacementSpace
@@ -27,11 +27,6 @@ class BlokusActionSpace(possibleActions: Set<ColoredBlokusPlacement>)
 
     override fun computeActionAvailability(): INDArray = Nd4j.create(actionAvailabilityArray)
     override fun getAvailableActions(): List<Int> = availableActionCache
-
-    override fun maxQValue(qVector: INDArray): Double {
-        return qVector.getDouble(maxQValueAction(qVector))
-    }
-
     override fun maxQValueAction(qVector: INDArray): Int {
         var maxQValue : Double? = null
         var maxQValueIndex : Int? = null
@@ -44,10 +39,6 @@ class BlokusActionSpace(possibleActions: Set<ColoredBlokusPlacement>)
         }
 
         return maxQValueIndex!!
-    }
-
-    override fun filterQValues(qVector: INDArray): INDArray {
-        return qVector.muliRowVector(computeActionAvailability())
     }
 
     companion object {

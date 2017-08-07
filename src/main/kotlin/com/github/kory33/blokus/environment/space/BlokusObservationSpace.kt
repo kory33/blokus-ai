@@ -1,5 +1,6 @@
-package com.github.kory33.blokus.environment
+package com.github.kory33.blokus.environment.space
 
+import com.github.kory33.blokus.environment.BlokusState
 import org.deeplearning4j.rl4j.space.ObservationSpace
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j

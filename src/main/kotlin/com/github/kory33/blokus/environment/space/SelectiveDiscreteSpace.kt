@@ -1,4 +1,4 @@
-package com.github.kory33.blokus.environment
+package com.github.kory33.blokus.environment.space
 
 import org.deeplearning4j.rl4j.space.DiscreteSpace
 import org.nd4j.linalg.api.ndarray.INDArray
@@ -15,14 +15,18 @@ abstract class SelectiveDiscreteSpace (size: Int) : DiscreteSpace(size) {
      */
     abstract fun getAvailableActions() : List<Int>
 
+    abstract fun maxQValueAction(qVector : INDArray) : Int
+
     override fun randomAction(): Int {
         val availableActions = getAvailableActions()
         return availableActions[rd.nextInt(availableActions.size)]
     }
 
-    abstract fun maxQValue(qVector : INDArray) : Double
+    fun maxQValue(qVector: INDArray): Double {
+        return qVector.getDouble(maxQValueAction(qVector))
+    }
 
-    abstract fun maxQValueAction(qVector : INDArray) : Int
-
-    abstract fun filterQValues(qVector: INDArray) : INDArray
+    fun filterQValues(qVector: INDArray): INDArray {
+        return qVector.muliRowVector(computeActionAvailability())
+    }
 }
