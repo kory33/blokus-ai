@@ -40,6 +40,7 @@ fun blokusDQN() {
 
     val manager = DataManager()
     val network = getBlokusMLN(BlokusMDP.OBSERVATION_SPACE.shape, BlokusMDP.ACTION_SPACE_SIZE)
+    val dqn = DQN(network)
 
     val mdp = BlokusMDP(PlayerColor.RED, ExploitingMLN(network))
 
@@ -51,7 +52,7 @@ fun blokusDQN() {
         print(BoardUtil.visualizeBoard(blokusState.gameData.board))
     }
 
-    val dql = QLearningSelectiveDiscreteDense(mdp, DQN(network), blokusQLConfig, manager)
+    val dql = QLearningSelectiveDiscreteDense(mdp, dqn, blokusQLConfig, manager)
 
     dql.train()
     mdp.close()
