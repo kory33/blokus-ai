@@ -1,7 +1,9 @@
 package com.github.kory33.blokus.environment
 
 import com.github.kory33.blokus.ai.ExploitingMLN
+import com.github.kory33.blokus.ai.ISelectiveObservation
 import com.github.kory33.blokus.environment.space.BlokusActionSpace
+import com.github.kory33.blokus.environment.space.SelectiveDiscreteSpace
 import com.github.kory33.blokus.game.BlokusGame
 import com.github.kory33.blokus.game.BlokusPlacement
 import com.github.kory33.blokus.game.ColoredBlokusPlacement
@@ -13,7 +15,7 @@ import org.json.JSONObject
 import org.nd4j.linalg.factory.Nd4j
 
 class BlokusState(private val exploitingMLN : ExploitingMLN<BlokusActionSpace>,
-                  private val playerColor: PlayerColor) : Encodable{
+                  private val playerColor: PlayerColor) : ISelectiveObservation {
     private val blokusGame = BlokusGame()
     private var rewardReservoir = 0
 
@@ -96,4 +98,5 @@ class BlokusState(private val exploitingMLN : ExploitingMLN<BlokusActionSpace>,
     }
 
     override fun toArray() = this.observation.toArray()
+    override fun getFilteringActionSpace() = getActionSpace()
 }

@@ -9,13 +9,12 @@ import org.deeplearning4j.rl4j.mdp.MDP
 import org.deeplearning4j.rl4j.network.dqn.IDQN
 import org.deeplearning4j.rl4j.policy.EpsGreedy
 import org.deeplearning4j.rl4j.policy.Policy
-import org.deeplearning4j.rl4j.space.Encodable
 import org.deeplearning4j.rl4j.util.Constants
 import org.deeplearning4j.rl4j.util.DataManager
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 
-abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteSpace>
+abstract class QLearningSelectiveDiscrete<O : ISelectiveObservation, AS : SelectiveDiscreteSpace>
         (private val mdp: MDP<O, Int, AS>,
          dqn: IDQN, conf: QLearning.QLConfiguration,
          private val dataManager: DataManager, epsilonNbStep: Int)
