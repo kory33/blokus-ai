@@ -87,39 +87,35 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
 
         val action: Int?
         val input = getInput(obs)
-        val isHistoryProcessor = historyProcessor != null
 
-        if (isHistoryProcessor)
-            historyProcessor.record(input)
-
-        val skipFrame = if (isHistoryProcessor) historyProcessor.conf.skipFrame else 1
-        val historyLength = if (isHistoryProcessor) historyProcessor.conf.historyLength else 1
+        historyProcessor?.record(input)
+        val skipFrame = historyProcessor?.conf?.skipFrame ?: 1
+        val historyLength = historyProcessor?.conf?.historyLength ?: 1
         val updateStart = getConfiguration().updateStart + (getConfiguration().batchSize + historyLength) * skipFrame
+        val doSkip = stepCounter % skipFrame != 0
 
-        var maxQ: Double? = java.lang.Double.NaN //ignore if Nan for stats
+        var maxQ: Double = Double.NaN //ignore if Nan for stats
 
         //if step of training, just repeat lastAction
-        if (stepCounter % skipFrame != 0) {
+        if (doSkip) {
             action = lastAction
         } else {
             if (history == null) {
-                if (isHistoryProcessor) {
-                    historyProcessor.add(input)
-                    history = historyProcessor.history
-                } else
-                    history = arrayOf(input)
+                historyProcessor?.add(input)
+                history = historyProcessor?.history ?: arrayOf(input)
             }
+
             //concat the history into a single INDArray input
             var hstack = Transition.concat(Transition.dup(history!!))
 
             //if input is not 2d, you have to append that the batch is 1 length high
-            if (hstack.shape().size > 2)
+            if (hstack.shape().size > 2) {
                 hstack = hstack.reshape(*Learning.makeShape(1, hstack.shape()))
+            }
 
             val qs = getCurrentDQN().output(hstack)
-            val maxAction = mdp.actionSpace.maxQValueAction(qs)
+            maxQ = mdp.actionSpace.maxQValue(qs)
 
-            maxQ = qs.getDouble(maxAction)
             action = getEgPolicy().nextAction(hstack)
         }
 
@@ -130,13 +126,12 @@ abstract class QLearningSelectiveDiscrete<O : Encodable, AS : SelectiveDiscreteS
         accuReward += stepReply.reward * configuration.rewardFactor
 
         //if it's not a skipped frame, you can do a step of training
-        if (stepCounter % skipFrame == 0 || stepReply.isDone) {
+        if (!doSkip || stepReply.isDone) {
 
             val ninput = getInput(stepReply.observation)
-            if (isHistoryProcessor)
-                historyProcessor.add(ninput)
+            historyProcessor?.add(ninput)
 
-            val nhistory = if (isHistoryProcessor) historyProcessor.history else arrayOf(ninput)
+            val nhistory = historyProcessor?.history ?: arrayOf(ninput)
 
             val trans = Transition(history, action, accuReward, stepReply.isDone, nhistory[0])
             expReplay.store(trans)

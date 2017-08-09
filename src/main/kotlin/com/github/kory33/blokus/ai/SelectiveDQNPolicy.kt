@@ -8,7 +8,7 @@ import org.deeplearning4j.rl4j.space.Encodable
 import org.nd4j.linalg.api.ndarray.INDArray
 
 class SelectiveDQNPolicy<O : Encodable, AS : SelectiveDiscreteSpace>(private val mdp : MDP<O, Int, AS>,
-                                                                                                                private val dqn : IDQN) : DQNPolicy<O>(dqn) {
+                                                                     private val dqn : IDQN) : DQNPolicy<O>(dqn) {
     override fun nextAction(input: INDArray): Int {
         return mdp.actionSpace.maxQValueAction(dqn.output(input))
     }
