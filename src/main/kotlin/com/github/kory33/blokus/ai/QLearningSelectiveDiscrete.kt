@@ -160,52 +160,46 @@ abstract class QLearningSelectiveDiscrete<O : ISelectiveObservation, AS : Select
         val nshape = Learning.makeShape(size, shape)
         val obs = Nd4j.create(*nshape)
         val nextObs = Nd4j.create(*nshape)
-        val actions = IntArray(size)
-        val areTerminal = BooleanArray(size)
 
-        for (i in 0..size - 1) {
-            val trans = transitions[i]
-            areTerminal[i] = trans.isTerminal
-            actions[i] = trans.action
-            obs.putRow(i, Transition.concat(trans.observation))
-            nextObs.putRow(i, Transition.concat(Transition.append(trans.observation, trans.nextObservation)))
+        transitions.forEachIndexed {i, transition ->
+            obs.putRow(i, Transition.concat(transition.observation))
+            nextObs.putRow(i, Transition.concat(Transition.append(transition.observation, transition.nextObservation)))
         }
 
         val dqnOutputAr = dqnOutput(obs)
-
         val dqnOutputNext = dqnOutput(nextObs)
-        var targetDqnOutputNext: INDArray? = null
 
+        var targetDqnOutputNext: INDArray? = null
         var tempQ: INDArray? = null
-        var getMaxAction: INDArray? = null
+        var maxActions: INDArray? = null
+
         if (getConfiguration().isDoubleDQN) {
             targetDqnOutputNext = targetDqnOutput(nextObs)
-            getMaxAction = Nd4j.argMax(targetDqnOutputNext, 1)
+            maxActions = Nd4j.argMax(targetDqnOutputNext, 1)
         } else {
             tempQ = Nd4j.max(dqnOutputNext, 1)
         }
 
+        transitions.forEachIndexed {i, transition ->
+            val action = transition.action
+            var yTar = transition.reward
 
-        for (i in 0..size - 1) {
-            var yTar = transitions[i].reward
-            if (!areTerminal[i]) {
-                var q = 0.0
-                if (getConfiguration().isDoubleDQN) {
-                    q += targetDqnOutputNext!!.getDouble(i, getMaxAction!!.getInt(i))
-                } else
-                    q += tempQ!!.getDouble(i)
+            if (!transition.isTerminal) {
+                val q = if (getConfiguration().isDoubleDQN) {
+                    targetDqnOutputNext!!.getDouble(i, maxActions!!.getInt(i))
+                } else {
+                    tempQ!!.getDouble(i)
+                }
 
                 yTar += getConfiguration().gamma * q
-
             }
 
-
-            val previousV = dqnOutputAr.getDouble(i, actions[i])
+            val previousV = dqnOutputAr.getDouble(i, action)
             val lowB = previousV - getConfiguration().errorClamp
             val highB = previousV + getConfiguration().errorClamp
             val clamped = Math.min(highB, Math.max(yTar, lowB))
 
-            dqnOutputAr.putScalar(i, actions[i], clamped)
+            dqnOutputAr.putScalar(i, action, clamped)
         }
 
         return Pair(obs, dqnOutputAr)
