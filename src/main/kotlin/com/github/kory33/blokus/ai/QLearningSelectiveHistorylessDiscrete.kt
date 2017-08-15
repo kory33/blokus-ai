@@ -1,9 +1,7 @@
 package com.github.kory33.blokus.ai
 
 import com.github.kory33.blokus.environment.space.SelectiveDiscreteSpace
-import org.deeplearning4j.berkeley.Pair
 import org.deeplearning4j.rl4j.learning.Learning
-import org.deeplearning4j.rl4j.learning.sync.Transition
 import org.deeplearning4j.rl4j.learning.sync.qlearning.QLearning
 import org.deeplearning4j.rl4j.mdp.MDP
 import org.deeplearning4j.rl4j.network.dqn.IDQN
@@ -14,10 +12,11 @@ import org.deeplearning4j.rl4j.util.DataManager
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 
-abstract class QLearningSelectiveDiscrete<O : ISelectiveObservation, AS : SelectiveDiscreteSpace>
+abstract class QLearningSelectiveHistorylessDiscrete<O : ISelectiveObservation, AS : SelectiveDiscreteSpace>
         (private val mdp: MDP<O, Int, AS>,
          dqn: IDQN, conf: QLearning.QLConfiguration,
-         private val dataManager: DataManager, epsilonNbStep: Int)
+         private val dataManager: DataManager,
+         epsilonNbStep: Int)
     : QLearning<O, Int, AS>(conf) {
 
     private val configuration: QLearning.QLConfiguration = conf
@@ -43,17 +42,15 @@ abstract class QLearningSelectiveDiscrete<O : ISelectiveObservation, AS : Select
     }
 
     private var lastAction: Int
-    private var history: Array<INDArray>?
     private var accuReward : Double
     private var lastMonitor : Int
-
+    private val observableExpRelay = ObservableExpReplay<Int, O>(conf.batchSize, conf.expRepMaxSize)
 
     init {
         targetDQN = dqn.clone()
         policy = SelectiveDQNPolicy(mdp, dqn)
         egPolicy = EpsGreedy(policy, mdp, conf.updateStart, epsilonNbStep, random, conf.minEpsilon, this)
         lastAction = 0
-        history = null
         accuReward = 0.0
         lastMonitor = -Constants.MONITOR_FREQ
     }
@@ -66,7 +63,6 @@ abstract class QLearningSelectiveDiscrete<O : ISelectiveObservation, AS : Select
     }
 
     public override fun preEpoch() {
-        history = null
         lastAction = 0
         accuReward = 0.0
 
@@ -99,23 +95,15 @@ abstract class QLearningSelectiveDiscrete<O : ISelectiveObservation, AS : Select
         if (doSkip) {
             action = lastAction
         } else {
-            if (history == null) {
-                historyProcessor?.add(input)
-                history = historyProcessor?.history ?: arrayOf(input)
-            }
+            val reshapedInput = if (input.shape().size > 2)
+                input.reshape(*Learning.makeShape(1, input.shape()))
+            else
+                input.dup()
 
-            //concat the history into a single INDArray input
-            var hstack = Transition.concat(Transition.dup(history!!))
-
-            //if input is not 2d, you have to append that the batch is 1 length high
-            if (hstack.shape().size > 2) {
-                hstack = hstack.reshape(*Learning.makeShape(1, hstack.shape()))
-            }
-
-            val qs = getCurrentDQN().output(hstack)
+            val qs = getCurrentDQN().output(reshapedInput)
             maxQ = mdp.actionSpace.maxQValue(qs)
 
-            action = getEgPolicy().nextAction(hstack)
+            action = getEgPolicy().nextAction(reshapedInput)
         }
 
         lastAction = action!!
@@ -127,20 +115,24 @@ abstract class QLearningSelectiveDiscrete<O : ISelectiveObservation, AS : Select
         //if it's not a skipped frame, you can do a step of training
         if (!doSkip || stepReply.isDone) {
 
-            val ninput = getInput(stepReply.observation)
-            historyProcessor?.add(ninput)
+            val recordTargetObservation = stepReply.observation
 
-            val nhistory = historyProcessor?.history ?: arrayOf(ninput)
-
-            val trans = Transition(history, action, accuReward, stepReply.isDone, nhistory[0])
-            expReplay.store(trans)
+            val nhistory = listOf(recordTargetObservation)
+            val trans = ObservableTransition(
+                    nhistory,
+                    action,
+                    accuReward,
+                    stepReply.isDone,
+                    stepReply.observation,
+                    mdp.observationSpace
+            )
+            observableExpRelay.store(trans)
 
             if (stepCounter > updateStart) {
-                val targets = setTarget(expReplay.batch)
-                getCurrentDQN().fit(targets.first, targets.second)
+                val (observations, targets) = getFitTargets(observableExpRelay.getBatch())
+                getCurrentDQN().fit(observations, targets)
             }
 
-            history = nhistory
             accuReward = 0.0
         }
 
@@ -149,8 +141,12 @@ abstract class QLearningSelectiveDiscrete<O : ISelectiveObservation, AS : Select
 
     }
 
+    private fun getQFilterMatrix(observationHistory: ObservationHistory<O>) : INDArray {
+        val qFilterList = observationHistory.map { it.getFilteringActionSpace().computeActionAvailability() }
+        return Nd4j.concat(0, *qFilterList.toTypedArray())
+    }
 
-    protected fun setTarget(transitions: ArrayList<Transition<Int>>): Pair<INDArray, INDArray> {
+    protected fun getFitTargets(transitions: ArrayList<ObservableTransition<Int, O>>): Pair<INDArray, INDArray> {
         if (transitions.size == 0)
             throw IllegalArgumentException("too few transitions")
 
@@ -158,23 +154,29 @@ abstract class QLearningSelectiveDiscrete<O : ISelectiveObservation, AS : Select
 
         val shape = if (historyProcessor == null) getMdp().observationSpace.shape else historyProcessor.conf.shape
         val nshape = Learning.makeShape(size, shape)
+
         val obs = Nd4j.create(*nshape)
         val nextObs = Nd4j.create(*nshape)
 
+        val qFilters = Nd4j.create(*nshape)
+        val nextQFilters = Nd4j.create(*nshape)
+
         transitions.forEachIndexed {i, transition ->
-            obs.putRow(i, Transition.concat(transition.observation))
-            nextObs.putRow(i, Transition.concat(Transition.append(transition.observation, transition.nextObservation)))
+            obs.putRow(i, transition.observationHistory.concatinated)
+            nextObs.putRow(i, transition.appended.concatinated)
+            qFilters.putRow(i, getQFilterMatrix(transition.observationHistory))
+            nextQFilters.putRow(i, getQFilterMatrix(transition.appended))
         }
 
-        val dqnOutputAr = dqnOutput(obs)
-        val dqnOutputNext = dqnOutput(nextObs)
+        val dqnOutputAr = qFilters.mul(dqnOutput(obs))
+        val dqnOutputNext = nextQFilters.mul(dqnOutput(nextObs))
 
         var targetDqnOutputNext: INDArray? = null
         var tempQ: INDArray? = null
         var maxActions: INDArray? = null
 
         if (getConfiguration().isDoubleDQN) {
-            targetDqnOutputNext = targetDqnOutput(nextObs)
+            targetDqnOutputNext = nextQFilters.mul(targetDqnOutput(nextObs))
             maxActions = Nd4j.argMax(targetDqnOutputNext, 1)
         } else {
             tempQ = Nd4j.max(dqnOutputNext, 1)
