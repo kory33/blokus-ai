@@ -13,10 +13,10 @@ import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 
 abstract class QLearningSelectiveHistorylessDiscrete<O : ISelectiveObservation, AS : SelectiveDiscreteSpace>
-        (private val mdp: MDP<O, Int, AS>,
-         dqn: IDQN, conf: QLearning.QLConfiguration,
-         private val dataManager: DataManager,
-         epsilonNbStep: Int)
+(private val mdp: MDP<O, Int, AS>,
+ dqn: IDQN, conf: QLearning.QLConfiguration,
+ private val dataManager: DataManager,
+ epsilonNbStep: Int)
     : QLearning<O, Int, AS>(conf) {
 
     private val configuration: QLearning.QLConfiguration = conf
@@ -115,11 +115,8 @@ abstract class QLearningSelectiveHistorylessDiscrete<O : ISelectiveObservation, 
         //if it's not a skipped frame, you can do a step of training
         if (!doSkip || stepReply.isDone) {
 
-            val recordTargetObservation = stepReply.observation
-
-            val nhistory = listOf(recordTargetObservation)
             val trans = ObservableTransition(
-                    nhistory,
+                    stepReply.observation,
                     action,
                     accuReward,
                     stepReply.isDone,
@@ -141,31 +138,29 @@ abstract class QLearningSelectiveHistorylessDiscrete<O : ISelectiveObservation, 
 
     }
 
-    private fun getQFilterMatrix(observationHistory: ObservationHistory<O>) : INDArray {
-        val qFilterList = observationHistory.map { it.getFilteringActionSpace().computeActionAvailability() }
-        return Nd4j.concat(0, *qFilterList.toTypedArray())
+    private fun getQFilterMatrix(observation: O) : INDArray {
+        return observation.getFilteringActionSpace().computeActionAvailability()
     }
 
     protected fun getFitTargets(transitions: ArrayList<ObservableTransition<Int, O>>): Pair<INDArray, INDArray> {
         if (transitions.size == 0)
             throw IllegalArgumentException("too few transitions")
 
-        val size = transitions.size
-
         val shape = if (historyProcessor == null) getMdp().observationSpace.shape else historyProcessor.conf.shape
-        val nshape = Learning.makeShape(size, shape)
+        val nshape = Learning.makeShape(transitions.size, shape)
 
         val obs = Nd4j.create(*nshape)
         val nextObs = Nd4j.create(*nshape)
 
-        val qFilters = Nd4j.create(*nshape)
-        val nextQFilters = Nd4j.create(*nshape)
+        val qFilterShape = intArrayOf(transitions.size, mdp.actionSpace.size)
+        val qFilters = Nd4j.create(*qFilterShape)
+        val nextQFilters = Nd4j.create(*qFilterShape)
 
         transitions.forEachIndexed {i, transition ->
-            obs.putRow(i, transition.observationHistory.concatinated)
-            nextObs.putRow(i, transition.appended.concatinated)
-            qFilters.putRow(i, getQFilterMatrix(transition.observationHistory))
-            nextQFilters.putRow(i, getQFilterMatrix(transition.appended))
+            obs.putRow(i, getInput(transition.observation))
+            nextObs.putRow(i, getInput(transition.nextObservation))
+            qFilters.putRow(i, getQFilterMatrix(transition.observation))
+            nextQFilters.putRow(i, getQFilterMatrix(transition.nextObservation))
         }
 
         val dqnOutputAr = qFilters.mul(dqnOutput(obs))
